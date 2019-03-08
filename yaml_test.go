@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+
+	yaml "github.com/sanathkr/go-yaml"
 )
 
 type MarshalTest struct {
@@ -149,7 +151,18 @@ func TestJSONToYAML(t *testing.T) {
 	runCases(t, RunTypeJSONToYAML, cases)
 }
 
+// We'll use this custom tag unmarshaler to cause some havoc later
+type tagUnmarshaler struct{}
+
+func (t *tagUnmarshaler) UnmarshalYAMLTag(tag string, value reflect.Value) reflect.Value {
+	output := reflect.ValueOf(make(map[string]interface{}))
+	output.SetMapIndex(reflect.ValueOf("tag"), value)
+	return output
+}
+
 func TestYAMLToJSON(t *testing.T) {
+	yaml.RegisterTagUnmarshaler("!tag", &tagUnmarshaler{})
+
 	cases := []Case{
 		{
 			"t: a\n",
@@ -209,6 +222,10 @@ func TestYAMLToJSON(t *testing.T) {
 			"- t: null\n",
 			`[{"t":null}]`,
 			nil,
+		}, {
+			"a: !tag\n  b: c\n",
+			`{"a":{"tag":{"b":"c"}}}`,
+			strPtr("a:\n  tag:\n    b: c\n"),
 		},
 	}
 
