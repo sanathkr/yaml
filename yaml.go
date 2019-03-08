@@ -243,6 +243,17 @@ func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (in
 			}
 		}
 		return arr, nil
+	case map[string]interface{}:
+		// We need to recurse into maps for the same reasons as above
+
+		for k, v := range typedYAMLObj {
+			typedYAMLObj[k], err = convertToJSONableObject(v, nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return typedYAMLObj, nil
 	default:
 		// If the target type is a string and the YAML type is a number,
 		// convert the YAML type to a string.
